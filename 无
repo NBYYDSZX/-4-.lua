@@ -1,0 +1,809 @@
+-- 加载WindUI库
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+-- 初始化游戏服务
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+-- 确保角色存在
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- 初始化游戏对象
+local rooms = Workspace:FindFirstChild("Rooms") or Workspace
+local ores = Workspace:FindFirstChild("Ores") or Workspace
+local mobs = Workspace:FindFirstChild("Mobs") or Workspace
+local invOres = LocalPlayer:FindFirstChild("InventoryOres") or LocalPlayer
+
+-- 通知消息
+WindUI:Notify({
+    Title = "已自动反作弊",
+    Content = "开启成功",
+    Duration = 5,
+})
+
+WindUI:Notify({
+    Title = "欢迎尊贵的1.用户",
+    Content = "已开启",
+    Duration = 5,
+})
+
+WindUI:Notify({
+    Title = "脚本永久免费 请勿倒卖 如有问题 询问QQ",
+    Content = "已开启",
+    Duration = 5,
+})
+
+WindUI:Notify({
+    Title = "1.HUBKM--挖出后院--",
+    Content = "已开启",
+    Duration = 5,
+})
+
+-- 创建主窗口
+local Window = WindUI:CreateWindow({
+    Title = "1.HUBKM 挖出后院",
+    Icon = "rbxassetid://81057495551471",
+    IconThemed = true,
+    Author = "挖出后院",
+    Folder = "CloudHub",
+    Size = UDim2.fromOffset(380, 250),
+    Transparent = true,
+    Theme = "Dark",
+    User = {
+        Enabled = true,
+        Callback = function() print("点击了用户按钮") end,
+        Anonymous = false
+    },
+    SideBarWidth = 200,
+    ScrollBarEnabled = true,
+})
+
+-- 自定义打开按钮
+Window:EditOpenButton({
+    Title = "1.HUBKM .挖出后院.",
+    Icon = "star",
+    CornerRadius = UDim.new(0,16),
+    StrokeThickness = 2,
+    Color = ColorSequence.new(
+        Color3.fromHex("2D0A20"), 
+        Color3.fromHex("FFFFFF")
+    ),
+    Draggable = true,
+})
+
+-- 主功能区
+local MainSection = Window:Section({
+    Title = "功能列表",
+    Opened = true,
+})
+
+-- 农民功能标签
+local FarmerTab = MainSection:Tab({ Title = "农民功能", Icon = "Sword" })
+
+-- 初始化配置
+local config = {
+    AutoPickup = false,
+    AutoSell = false,
+    AutoEnergy = false,
+    ShovelUpgrade = false,
+    BackpackUpgrade = false,
+    EnergyUpgrade = false,
+    JetpackUpgrade = false,
+    OresESP = false,
+    RoomsESP = false,
+    MobsESP = false,
+    LootESP = false
+}
+
+-- 自动拾取战利品袋
+FarmerTab:Toggle({
+    Title = "自动拾取战利品袋",
+    Description = "自动拾取附近的战利品袋",
+    Default = config.AutoPickup,
+    Callback = function(Value)
+        config.AutoPickup = Value
+        if Value then
+            task.spawn(function()
+                while config.AutoPickup do
+                    local lastPos = HumanoidRootPart.CFrame
+                    for _, loot in pairs(rooms:GetDescendants()) do
+                        if not config.AutoPickup then break end
+                        if loot:IsA("Model") and loot.Name == "LootBag" then
+                            local handle = loot:FindFirstChild("Handle")
+                            if handle then
+                                local prox = handle:FindFirstChild("Attachment"):FindFirstChild("ProximityPrompt")
+                                if prox then
+                                    HumanoidRootPart.CFrame = handle.CFrame
+                                    task.wait(0.25)
+                                    fireproximityprompt(prox, prox.MaxActivationDistance)
+                                    task.wait(0.75)
+                                end
+                            end
+                        end
+                    end
+                    HumanoidRootPart.CFrame = lastPos
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- 自动出售矿石
+FarmerTab:Toggle({
+    Title = "自动出售矿石",
+    Description = "当矿石满时自动出售",
+    Default = config.AutoSell,
+    Callback = function(Value)
+        config.AutoSell = Value
+        if Value then
+            task.spawn(function()
+                while config.AutoSell do
+                    local maxInventory = invOres:GetAttribute("MaxInventory")
+                    local oreCount = 0
+                    
+                    for _, ore in pairs(invOres:GetChildren()) do
+                        if ore:IsA("IntValue") then
+                            oreCount += ore.Value
+                        end
+                    end
+                    
+                    if oreCount == maxInventory then
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Features")
+                            :WaitForChild("MiningSystem")
+                            :WaitForChild("MineUtil")
+                            :WaitForChild("RemoteEvent")
+                            :FireServer("SellOres")
+                    end
+                    
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- 出售矿石按钮
+FarmerTab:Button({
+    Title = "出售矿石",
+    Description = "立即出售所有矿石",
+    Callback = function()
+        game:GetService("ReplicatedStorage")
+            :WaitForChild("Framework")
+            :WaitForChild("Features")
+            :WaitForChild("MiningSystem")
+            :WaitForChild("MineUtil")
+            :WaitForChild("RemoteEvent")
+            :FireServer("SellOres")
+    end
+})
+
+-- 自动吃蛋糕
+FarmerTab:Toggle({
+    Title = "自动吃蛋糕",
+    Description = "能量低时自动吃蛋糕",
+    Default = config.AutoEnergy,
+    Callback = function(Value)
+        config.AutoEnergy = Value
+        if Value then
+            task.spawn(function()
+                while config.AutoEnergy do
+                    local energy = LocalPlayer:GetAttribute("Energy")
+                    local maxEnergy = LocalPlayer:GetAttribute("MaxEnergy")
+
+                    if energy <= 30 then
+                        local cake = Workspace:FindFirstChild("Cake") and Workspace.Cake:FindFirstChild("Base")
+                        local prox = cake and cake:FindFirstChildOfClass("ProximityPrompt")
+
+                        if cake and prox then
+                            local lastPos = HumanoidRootPart.CFrame
+
+                            HumanoidRootPart.CFrame = cake.CFrame * CFrame.new(0, -5, 0)
+
+                            repeat
+                                fireproximityprompt(prox, prox.MaxActivationDistance)
+                                task.wait(0.1)
+                                energy = LocalPlayer:GetAttribute("Energy")
+                            until energy >= maxEnergy or not config.AutoEnergy
+
+                            HumanoidRootPart.CFrame = lastPos
+                        end
+                    end
+                    
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- 吃蛋糕按钮
+FarmerTab:Button({
+    Title = "吃蛋糕",
+    Description = "立即吃蛋糕补充能量",
+    Callback = function()
+        local energy = LocalPlayer:GetAttribute("Energy")
+        local maxEnergy = LocalPlayer:GetAttribute("MaxEnergy")
+        
+        local cake = Workspace:FindFirstChild("Cake") and Workspace.Cake:FindFirstChild("Base")
+        local prox = cake and cake:FindFirstChildOfClass("ProximityPrompt")
+
+        if cake and prox then
+            local lastPos = HumanoidRootPart.CFrame
+
+            HumanoidRootPart.CFrame = cake.CFrame * CFrame.new(0, -5, 0)
+
+            repeat
+                fireproximityprompt(prox, prox.MaxActivationDistance)
+                task.wait(0.1)
+                energy = LocalPlayer:GetAttribute("Energy")
+                cake = Workspace:FindFirstChild("Cake") and Workspace.Cake:FindFirstChild("Base")
+                prox = cake and cake:FindFirstChildOfClass("ProximityPrompt")
+            until energy >= maxEnergy or not config.AutoEnergy
+
+            HumanoidRootPart.CFrame = lastPos
+        end
+    end
+})
+
+FarmerTab:Toggle({
+    Title = "自动全部升级",
+    Description = "自动升级所有装备",
+    Default = false,
+    Callback = function(Value)
+        config.ShovelUpgrade = Value
+        config.BackpackUpgrade = Value
+        config.EnergyUpgrade = Value
+        config.JetpackUpgrade = Value
+        
+        if Value then
+            task.spawn(function()
+                while config.ShovelUpgrade and config.BackpackUpgrade and config.EnergyUpgrade and config.JetpackUpgrade do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Shovel")
+                    
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Backpack")
+                    
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Energy")
+                    
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Jetpack")
+                    
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+FarmerTab:Toggle({
+    Title = "自动铲子升级",
+    Description = "自动升级铲子",
+    Default = false,
+    Callback = function(Value)
+        config.ShovelUpgrade = Value
+        if Value then
+            task.spawn(function()
+                while config.ShovelUpgrade do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Shovel")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+FarmerTab:Toggle({
+    Title = "自动背包升级",
+    Description = "自动升级背包容量",
+    Default = false,
+    Callback = function(Value)
+        config.BackpackUpgrade = Value
+        if Value then
+            task.spawn(function()
+                while config.BackpackUpgrade do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Backpack")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+FarmerTab:Toggle({
+    Title = "自动能量升级",
+    Description = "自动升级能量上限",
+    Default = false,
+    Callback = function(Value)
+        config.EnergyUpgrade = Value
+        if Value then
+            task.spawn(function()
+                while config.EnergyUpgrade do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Energy")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+FarmerTab:Toggle({
+    Title = "自动喷气背包升级",
+    Description = "自动升级喷气背包",
+    Default = false,
+    Callback = function(Value)
+        config.JetpackUpgrade = Value
+        if Value then
+            task.spawn(function()
+                while config.JetpackUpgrade do
+                    game:GetService("ReplicatedStorage")
+                        :WaitForChild("Framework")
+                        :WaitForChild("Features")
+                        :WaitForChild("MiningSystem")
+                        :WaitForChild("UpgradeUtil")
+                        :WaitForChild("RemoteEvent")
+                        :FireServer("BuyUpgrade", "Jetpack")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+local TeleportTab = MainSection:Tab({ Title = "传送功能", Icon = "Sword" })  
+TeleportTab:Button({
+    Title = "传送回家",
+    Description = "传送到家位置",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(471, 24, -684)
+    end
+})
+
+TeleportTab:Button({
+    Title = "地下",
+    Description = "传送到地下位置",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(347,-364,-478)
+    end
+})
+
+TeleportTab:Button({
+    Title = "神秘地方",
+    Description = "传送到神秘位置",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(-111,13,-508)
+    end
+})
+
+TeleportTab:Button({
+    Title = "测试位置1",
+    Description = "传送到测试位置1",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(127,20,-388)
+    end
+})
+
+TeleportTab:Button({
+    Title = "自己测试2",
+    Description = "传送到测试位置2",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(295,24,-746)
+    end
+})
+
+local ESPTab = MainSection:Tab({ Title = "ESP功能", Icon = "Sword" })
+
+-- ESP功能实现
+local function createESP(instance, color, size)
+    if not instance or not instance.PrimaryPart then return end
+    
+    -- 创建盒子ESP
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "ESPBox"
+    box.Adornee = instance
+    box.AlwaysOnTop = true
+    box.ZIndex = 1
+    box.Size = size or instance:GetExtentsSize()
+    box.Transparency = 0.5
+    box.Color3 = color or Color3.new(1, 0, 0)
+    box.Parent = instance
+    
+    -- 创建名称标签
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESPName"
+    billboard.Adornee = instance.PrimaryPart
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = instance
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Text = instance.Name
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = color or Color3.new(1, 1, 1)
+    textLabel.TextStrokeTransparency = 0
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextSize = 20
+    textLabel.Parent = billboard
+    
+    return {box, billboard}
+end
+
+local function clearESP(instance)
+    for _, child in pairs(instance:GetDescendants()) do
+        if child.Name == "ESPBox" or child.Name == "ESPName" then
+            child:Destroy()
+        end
+    end
+end
+
+-- 矿石ESP
+ESPTab:Toggle({
+    Title = "矿石ESP",
+    Description = "显示所有矿石",
+    Default = config.OresESP,
+    Callback = function(Value)
+        config.OresESP = Value
+        if Value then
+            task.spawn(function()
+                while config.OresESP do
+                    for _, ore in pairs(ores:GetChildren()) do
+                        if not config.OresESP then break end
+                        if ore then
+                            local mPart = ore:FindFirstChildOfClass("MeshPart")
+                            if mPart then
+                                if not ore:FindFirstChild("ESP") then
+                                    local box = Instance.new("BoxHandleAdornment", ore)
+                                    box.Name = "ESP"
+                                    box.Adornee = ore
+                                    box.AlwaysOnTop = true
+                                    box.Size = Vector3.new(5,5,5)
+                                    box.ZIndex = 0
+                                    box.Transparency = .3
+                                    box.Color3 = mPart.Color
+                                end
+                            end
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+        else
+            for _,e in pairs(ores:GetDescendants()) do
+                if e.Name == "ESP" then
+                    e:Destroy()
+                end
+            end
+        end
+    end
+})
+
+-- 怪物ESP
+ESPTab:Toggle({
+    Title = "怪物ESP",
+    Description = "显示所有怪物",
+    Default = config.MobsESP,
+    Callback = function(Value)
+        config.MobsESP = Value
+        if Value then
+            for _, mob in pairs(mobs:GetChildren()) do
+                if mob:IsA("Model") then
+                    createESP(mob, Color3.new(1, 0, 0))
+                end
+            end
+        else
+            for _, mob in pairs(mobs:GetChildren()) do
+                clearESP(mob)
+            end
+        end
+    end
+})
+
+-- 战利品ESP
+ESPTab:Toggle({
+    Title = "战利品ESP",
+    Description = "显示所有战利品",
+    Default = config.LootESP,
+    Callback = function(Value)
+        config.LootESP = Value
+        if Value then
+            for _, loot in pairs(rooms:GetDescendants()) do
+                if loot:IsA("Model") and loot.Name == "LootBag" then
+                    createESP(loot, Color3.new(0, 1, 0))
+                end
+            end
+        else
+            for _, loot in pairs(rooms:GetDescendants()) do
+                clearESP(loot)
+            end
+        end
+    end
+})
+
+-- 玩家ESP
+local playerESPEnabled = false
+local playerESPConnections = {}
+
+local function createPlayerESP(player)
+    if player == LocalPlayer then return end
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    if not character then return end
+    
+    local esp = createESP(character, Color3.new(1, 1, 1))
+    
+    local connection = player.CharacterAdded:Connect(function(newChar)
+        task.wait(1) -- 等待角色加载
+        if playerESPEnabled then
+            clearESP(character)
+            createESP(newChar, Color3.new(1, 1, 1))
+        end
+    end)
+    
+    playerESPConnections[player] = {esp = esp, connection = connection}
+end
+
+local function clearPlayerESP(player)
+    if playerESPConnections[player] then
+        clearESP(player.Character)
+        playerESPConnections[player].connection:Disconnect()
+        playerESPConnections[player] = nil
+    end
+end
+
+ESPTab:Toggle({
+    Title = "玩家ESP",
+    Description = "显示所有玩家",
+    Default = playerESPEnabled,
+    Callback = function(Value)
+        playerESPEnabled = Value
+        if Value then
+            for _, player in pairs(Players:GetPlayers()) do
+                createPlayerESP(player)
+            end
+            
+            table.insert(playerESPConnections, Players.PlayerAdded:Connect(function(player)
+                createPlayerESP(player)
+            end))
+            
+            table.insert(playerESPConnections, Players.PlayerRemoving:Connect(function(player)
+                clearPlayerESP(player)
+            end))
+        else
+            for _, player in pairs(Players:GetPlayers()) do
+                clearPlayerESP(player)
+            end
+            
+            for _, connection in pairs(playerESPConnections) do
+                if type(connection) == "table" then
+                    connection.connection:Disconnect()
+                else
+                    connection:Disconnect()
+                end
+            end
+            playerESPConnections = {}
+        end
+    end
+})
+
+local AimTab = MainSection:Tab({ Title = "自瞄功能", Icon = "Sword" })
+
+local aimConfig = {
+    Enabled = false,
+    AutoPunch = false,
+    FOV = 45,
+    Smoothness = 2,
+    NoRecoil = false,
+    ShowCrosshair = true
+}
+
+AimTab:Toggle({
+    Title = "自瞄开关",
+    Default = aimConfig.Enabled,
+    Callback = function(Value)
+        aimConfig.Enabled = Value
+    end
+})
+
+AimTab:Toggle({
+    Title = "自动追击",
+    Default = aimConfig.AutoPunch,
+    Callback = function(Value)
+        aimConfig.AutoPunch = Value
+    end
+})
+
+AimTab:Toggle({
+    Title = "无后坐力",
+    Default = aimConfig.NoRecoil,
+    Callback = function(Value)
+        aimConfig.NoRecoil = Value
+    end
+})
+
+AimTab:Toggle({
+    Title = "显示准星",
+    Default = aimConfig.ShowCrosshair,
+    Callback = function(Value)
+        aimConfig.ShowCrosshair = Value
+    end
+})
+
+
+local circle = Drawing.new("Circle")
+circle.Visible = false
+circle.Thickness = 2
+circle.Color = Color3.fromRGB(255, 0, 0)
+circle.Filled = false
+
+local crosshair = Drawing.new("Line")
+local crosshair2 = Drawing.new("Line")
+crosshair.Visible = false
+crosshair2.Visible = false
+crosshair.Thickness = 1
+crosshair2.Thickness = 1
+crosshair.Color = Color3.fromRGB(255, 255, 255)
+crosshair2.Color = Color3.fromRGB(255, 255, 255)
+
+local function updateVisuals()
+    circle.Visible = aimConfig.Enabled
+    circle.Radius = aimConfig.FOV
+    circle.Position = workspace.CurrentCamera.ViewportSize / 2
+    
+    local center = workspace.CurrentCamera.ViewportSize / 2
+    local crossSize = 10
+    
+    crosshair.Visible = aimConfig.ShowCrosshair
+    crosshair2.Visible = aimConfig.ShowCrosshair
+    
+    crosshair.From = Vector2.new(center.X - crossSize, center.Y)
+    crosshair.To = Vector2.new(center.X + crossSize, center.Y)
+    
+    crosshair2.From = Vector2.new(center.X, center.Y - crossSize)
+    crosshair2.To = Vector2.new(center.X, center.Y + crossSize)
+end
+
+local function findTarget()
+    local camera = workspace.CurrentCamera
+    local localPlayer = Players.LocalPlayer
+    if not localPlayer or not localPlayer.Character then return nil end
+    
+    local bestTarget = nil
+    local closestDistance = aimConfig.FOV
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local rootPos = player.Character.HumanoidRootPart.Position
+            local screenPos, onScreen = camera:WorldToViewportPoint(rootPos)
+            
+            if onScreen then
+                local center = camera.ViewportSize / 2
+                local diff = Vector2.new(screenPos.X, screenPos.Y) - center
+                local distance = diff.Magnitude
+                
+                if distance <= closestDistance then
+                    closestDistance = distance
+                    bestTarget = player.Character
+                end
+            end
+        end
+    end
+    
+    return bestTarget
+end
+
+local function smoothMove(targetPos)
+    local camera = workspace.CurrentCamera
+    local currentPos = camera.CFrame.Position
+    local direction = (targetPos - currentPos).Unit
+    local newCFrame = CFrame.new(currentPos, currentPos + direction)
+    
+    camera.CFrame = camera.CFrame:Lerp(newCFrame, 1/aimConfig.Smoothness)
+end
+
+local function autoPunch()
+    local localPlayer = Players.LocalPlayer
+    if not localPlayer or not localPlayer.Character then return end
+    
+    local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
+    
+    if humanoid and tool then
+        local closestEnemy = nil
+        local minDistance = math.huge
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                local root = player.Character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local distance = (root.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if distance < minDistance then
+                        minDistance = distance
+                        closestEnemy = player.Character
+                    end
+                end
+            end
+        end
+        
+        for _, npc in ipairs(Workspace:GetChildren()) do
+            if npc:FindFirstChild("Humanoid") and npc ~= localPlayer.Character then
+                local root = npc:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local distance = (root.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if distance < minDistance then
+                        minDistance = distance
+                        closestEnemy = npc
+                    end
+                end
+            end
+        end
+        
+        if closestEnemy and minDistance < 20 then
+            humanoid:EquipTool(tool)
+            tool:Activate()
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    updateVisuals()
+    
+    if aimConfig.Enabled then
+        local target = findTarget()
+        if target and target:FindFirstChild("HumanoidRootPart") then
+            smoothMove(target.HumanoidRootPart.Position)
+        end
+    end
+    
+    if aimConfig.AutoPunch then
+        autoPunch()
+    end
+end)
